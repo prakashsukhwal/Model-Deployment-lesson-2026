@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L6: Model Deployment - From Training to Production</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <style>
+        /* Override highlight.js for better visibility */
+        .hljs { background: #f8f9fa !important; color: #333 !important; }
+        .hljs-keyword { color: #d73a49 !important; font-weight: bold; }
+        .hljs-string { color: #032f62 !important; }
+        .hljs-comment { color: #6a737d !important; }
+        .hljs-function { color: #6f42c1 !important; }
+        .hljs-number { color: #005cc5 !important; }
+        .hljs-built_in { color: #e36209 !important; }
+        .hljs-class { color: #6f42c1 !important; }
+    </style>
+    <style>
+        :root {
+            --r-heading-color: #1a1a2e;
+            --r-main-color: #333;
+            --r-link-color: #0066cc;
+            --r-background-color: #ffffff;
+        }
+        .reveal { font-size: 32px; }
+        .reveal h1 { font-size: 2.2em; color: #1a1a2e; }
+        .reveal h2 { font-size: 1.6em; color: #16213e; }
+        .reveal h3 { font-size: 1.3em; color: #0f3460; }
+        .reveal pre { font-size: 0.55em; width: 100%; box-shadow: none; }
+        .reveal code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; color: #333; }
+        .reveal pre code { background: #f8f9fa; color: #333; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; }
+        .reveal table { font-size: 0.7em; margin: 0 auto; border-collapse: collapse; }
+        .reveal th, .reveal td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+        .reveal th { background: #0f3460; color: white; }
+        .reveal tr:nth-child(even) { background: #f8f9fa; }
+        .reveal .highlight-box { background: #e8f4f8; border-left: 4px solid #0066cc; padding: 15px; margin: 15px 0; text-align: left; }
+        .reveal .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 15px 0; text-align: left; }
+        .reveal .success-box { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 15px 0; text-align: left; }
+        .reveal .architecture-box { background: #f8f9fa; border: 2px solid #dee2e6; padding: 20px; border-radius: 10px; font-family: monospace; font-size: 0.6em; text-align: left; white-space: pre; }
+        .reveal ul { text-align: left; }
+        .reveal .two-column { display: flex; gap: 30px; }
+        .reveal .two-column > div { flex: 1; }
+        .reveal .step-number { display: inline-block; width: 30px; height: 30px; background: #0f3460; color: white; border-radius: 50%; text-align: center; line-height: 30px; margin-right: 10px; }
+        .slide-footer { position: absolute; bottom: 20px; left: 20px; font-size: 0.5em; color: #888; }
+        
+        /* Interactive Quiz Styles */
+        .quiz-question {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin: 12px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+        .quiz-question:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        .quiz-question .q-text {
+            font-weight: bold;
+            color: #1a1a2e;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .quiz-question .q-text::before {
+            content: "❓";
+            font-size: 1.2em;
+        }
+        .quiz-question.revealed .q-text::before {
+            content: "✅";
+        }
+        .quiz-question .answer {
+            display: none;
+            margin-top: 12px;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            border-radius: 8px;
+            color: #155724;
+            font-size: 0.8em;
+            border-left: 4px solid #28a745;
+        }
+        .quiz-question.revealed .answer {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        .quiz-question .click-hint {
+            font-size: 0.7em;
+            color: #888;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        .quiz-question.revealed .click-hint {
+            display: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Title Slide -->
+            <section>
+                <h1>Model Deployment</h1>
+                <h3>From Notebook to Cloud</h3>
+                <p style="margin-top: 40px;">
+                    <span style="color: #666;">A Practical Introduction: Train → API → Deploy</span>
+                </p>
+            </section>
+
+            <!-- Learning Objectives -->
+            <section>
+                <h2>Learning Objectives</h2>
+                <div style="text-align: left;">
+                    <p><span class="step-number">1</span> Train ensemble models using <strong>sklearn Pipelines</strong></p>
+                    <p><span class="step-number">2</span> Save models properly for <strong>deployment</strong></p>
+                    <p><span class="step-number">3</span> Build a <strong>FastAPI</strong> prediction service</p>
+                    <p><span class="step-number">4</span> Deploy to <strong>Render.com</strong> (cloud)</p>
+                    <p><span class="step-number">5</span> Create a <strong>Streamlit</strong> frontend</p>
+                </div>
+            </section>
+
+            <!-- Architecture Overview -->
+            <section>
+                <h2>Architecture Overview</h2>
+                <p style="font-size: 0.7em; color: #888; margin-bottom: 25px;">The Data Journey: From Raw Features to Predictions</p>
+                
+                <svg viewBox="0 0 900 380" style="width: 100%; max-width: 900px;">
+                    <defs>
+                        <!-- Gradients -->
+                        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#667eea"/>
+                            <stop offset="100%" style="stop-color:#764ba2"/>
+                        </linearGradient>
+                        <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#11998e"/>
+                            <stop offset="100%" style="stop-color:#38ef7d"/>
+                        </linearGradient>
+                        <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#ee0979"/>
+                            <stop offset="100%" style="stop-color:#ff6a00"/>
+                        </linearGradient>
+                        <linearGradient id="gradCloud" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" style="stop-color:#e0e7ff"/>
+                            <stop offset="100%" style="stop-color:#c7d2fe"/>
+                        </linearGradient>
+                        <!-- Drop shadow -->
+                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
+                        </filter>
+                        <filter id="shadowSm" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+                        </filter>
+                    </defs>
+                    
+                    <!-- Cloud background -->
+                    <rect x="20" y="15" width="860" height="350" rx="20" fill="url(#gradCloud)" opacity="0.4"/>
+                    
+                    <!-- ===== PART 1: TRAINING ===== -->
+                    <g transform="translate(50, 50)">
+                        <!-- Main card -->
+                        <rect x="0" y="0" width="200" height="240" rx="16" fill="url(#grad1)" filter="url(#shadow)"/>
+                        <!-- Header -->
+                        <text x="100" y="30" text-anchor="middle" fill="white" font-size="11" font-weight="bold" letter-spacing="1">PART 1</text>
+                        <text x="100" y="52" text-anchor="middle" fill="white" font-size="15" font-weight="bold">Training</text>
+                        <text x="100" y="70" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Jupyter / Colab</text>
+                        
+                        <!-- Inner items -->
+                        <rect x="15" y="85" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="105" text-anchor="middle" fill="white" font-size="11">📊 Load Data</text>
+                        
+                        <rect x="15" y="122" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="142" text-anchor="middle" fill="white" font-size="11">⚙️ Create Pipeline</text>
+                        
+                        <rect x="15" y="159" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="179" text-anchor="middle" fill="white" font-size="11">🧠 Train Models</text>
+                        
+                        <!-- Output badge -->
+                        <rect x="50" y="200" width="100" height="28" rx="14" fill="white"/>
+                        <text x="100" y="219" text-anchor="middle" fill="#764ba2" font-size="10" font-weight="bold">💾 .pkl files</text>
+                    </g>
+                    
+                    <!-- Arrow 1: Training → API -->
+                    <g transform="translate(260, 155)">
+                        <line x1="0" y1="0" x2="65" y2="0" stroke="#764ba2" stroke-width="3" stroke-dasharray="8,4"/>
+                        <polygon points="65,-6 80,0 65,6" fill="#764ba2"/>
+                        <text x="40" y="-12" text-anchor="middle" fill="#666" font-size="9" font-weight="bold">GitHub</text>
+                    </g>
+                    
+                    <!-- ===== PART 2: API ===== -->
+                    <g transform="translate(350, 50)">
+                        <!-- Main card -->
+                        <rect x="0" y="0" width="200" height="240" rx="16" fill="url(#grad2)" filter="url(#shadow)"/>
+                        <!-- Header -->
+                        <text x="100" y="30" text-anchor="middle" fill="white" font-size="11" font-weight="bold" letter-spacing="1">PART 2</text>
+                        <text x="100" y="52" text-anchor="middle" fill="white" font-size="15" font-weight="bold">FastAPI</text>
+                        <text x="100" y="70" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Render.com</text>
+                        
+                        <!-- Inner items -->
+                        <rect x="15" y="85" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="105" text-anchor="middle" fill="white" font-size="11">📥 Load Models</text>
+                        
+                        <rect x="15" y="122" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="142" text-anchor="middle" fill="white" font-size="11">✅ Validate Input</text>
+                        
+                        <rect x="15" y="159" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="179" text-anchor="middle" fill="white" font-size="11">🎯 /predict</text>
+                        
+                        <!-- Output badge -->
+                        <rect x="50" y="200" width="100" height="28" rx="14" fill="white"/>
+                        <text x="100" y="219" text-anchor="middle" fill="#11998e" font-size="10" font-weight="bold">📡 REST API</text>
+                    </g>
+                    
+                    <!-- Arrow 2: API ↔ Frontend (bidirectional) -->
+                    <g transform="translate(560, 155)">
+                        <line x1="0" y1="0" x2="70" y2="0" stroke="#38ef7d" stroke-width="3"/>
+                        <polygon points="0,-6 -15,0 0,6" fill="#38ef7d"/>
+                        <polygon points="70,-6 85,0 70,6" fill="#ee0979"/>
+                        <text x="35" y="-12" text-anchor="middle" fill="#666" font-size="9" font-weight="bold">HTTP/JSON</text>
+                    </g>
+                    
+                    <!-- ===== PART 3: FRONTEND ===== -->
+                    <g transform="translate(650, 50)">
+                        <!-- Main card -->
+                        <rect x="0" y="0" width="200" height="240" rx="16" fill="url(#grad3)" filter="url(#shadow)"/>
+                        <!-- Header -->
+                        <text x="100" y="30" text-anchor="middle" fill="white" font-size="11" font-weight="bold" letter-spacing="1">PART 3</text>
+                        <text x="100" y="52" text-anchor="middle" fill="white" font-size="15" font-weight="bold">Streamlit</text>
+                        <text x="100" y="70" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="10">Streamlit Cloud</text>
+                        
+                        <!-- Inner items -->
+                        <rect x="15" y="85" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="105" text-anchor="middle" fill="white" font-size="11">📝 User Form</text>
+                        
+                        <rect x="15" y="122" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="142" text-anchor="middle" fill="white" font-size="11">📊 Visualizations</text>
+                        
+                        <rect x="15" y="159" width="170" height="30" rx="6" fill="rgba(255,255,255,0.15)"/>
+                        <text x="100" y="179" text-anchor="middle" fill="white" font-size="11">🔔 Alerts</text>
+                        
+                        <!-- Output badge -->
+                        <rect x="50" y="200" width="100" height="28" rx="14" fill="white"/>
+                        <text x="100" y="219" text-anchor="middle" fill="#ee0979" font-size="10" font-weight="bold">👤 User</text>
+                    </g>
+                    
+                    <!-- User icon -->
+                    <g transform="translate(830, 305)">
+                        <circle cx="20" cy="0" r="18" fill="#fff" stroke="#ee0979" stroke-width="2" filter="url(#shadowSm)"/>
+                        <text x="20" y="6" text-anchor="middle" font-size="18">👤</text>
+                    </g>
+                    
+                    <!-- Bottom labels -->
+                    <g transform="translate(0, 320)">
+                        <rect x="55" y="20" width="190" height="26" rx="13" fill="#667eea" opacity="0.1"/>
+                        <text x="150" y="38" text-anchor="middle" fill="#667eea" font-size="10" font-weight="bold">Data Scientists</text>
+                        
+                        <rect x="355" y="20" width="190" height="26" rx="13" fill="#11998e" opacity="0.1"/>
+                        <text x="450" y="38" text-anchor="middle" fill="#11998e" font-size="10" font-weight="bold">Cloud Infrastructure</text>
+                        
+                        <rect x="655" y="20" width="190" height="26" rx="13" fill="#ee0979" opacity="0.1"/>
+                        <text x="750" y="38" text-anchor="middle" fill="#ee0979" font-size="10" font-weight="bold">Business Users</text>
+                    </g>
+                </svg>
+                
+                <div style="display: flex; justify-content: center; gap: 30px; margin-top: 15px; font-size: 0.65em;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 12px; height: 12px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 3px;"></div>
+                        <span>Development</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 12px; height: 12px; background: linear-gradient(135deg, #11998e, #38ef7d); border-radius: 3px;"></div>
+                        <span>Backend Service</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="width: 12px; height: 12px; background: linear-gradient(135deg, #ee0979, #ff6a00); border-radius: 3px;"></div>
+                        <span>User Interface</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PART 1: Model Training -->
+            <section>
+                <section>
+                    <h1>Part 1</h1>
+                    <h2>Model Training</h2>
+                    <p>Building & saving ML pipelines</p>
+                </section>
+
+                <section>
+                    <h2>Why Use Pipelines?</h2>
+                    <div style="display: flex; gap: 20px; justify-content: center; margin-top: 20px;">
+                        <!-- Without Pipeline -->
+                        <div style="flex: 1; max-width: 380px; background: #fff5f5; border: 2px solid #dc3545; border-radius: 12px; overflow: hidden;">
+                            <div style="background: #dc3545; color: white; padding: 12px; text-align: center; font-weight: bold;">
+                                ❌ WITHOUT PIPELINE
+                            </div>
+                            <div style="padding: 15px;">
+                                <div style="background: #f8d7da; padding: 10px; border-radius: 6px; margin-bottom: 8px; text-align: center; color: #721c24; font-size: 0.8em;">
+                                    1. encoder.fit(ALL_DATA)
+                                </div>
+                                <div style="text-align: center; color: #dc3545;">↓</div>
+                                <div style="background: #f8d7da; padding: 10px; border-radius: 6px; margin-bottom: 8px; text-align: center; color: #721c24; font-size: 0.8em;">
+                                    2. transform(ALL_DATA)
+                                </div>
+                                <div style="text-align: center; color: #dc3545;">↓</div>
+                                <div style="background: #f8d7da; padding: 10px; border-radius: 6px; margin-bottom: 8px; text-align: center; color: #721c24; font-size: 0.8em;">
+                                    3. train_test_split()
+                                </div>
+                                <div style="text-align: center; color: #dc3545;">↓</div>
+                                <div style="background: #dc3545; padding: 10px; border-radius: 6px; text-align: center; color: white; font-size: 0.75em; font-weight: bold;">
+                                    ⚠️ DATA LEAKAGE!<br>Encoder saw test data
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- With Pipeline -->
+                        <div style="flex: 1; max-width: 380px; background: #f0fff4; border: 2px solid #28a745; border-radius: 12px; overflow: hidden;">
+                            <div style="background: #28a745; color: white; padding: 12px; text-align: center; font-weight: bold;">
+                                ✓ WITH PIPELINE
+                            </div>
+                            <div style="padding: 15px;">
+                                <div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 8px; text-align: center; color: #155724; font-size: 0.8em;">
+                                    1. train_test_split(RAW_DATA)
+                                </div>
+                                <div style="text-align: center; color: #28a745;">↓</div>
+                                <div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 8px; text-align: center; color: #155724; font-size: 0.8em;">
+                                    2. pipeline.fit(X_train, y_train)
+                                </div>
+                                <div style="text-align: center; color: #28a745;">↓</div>
+                                <div style="background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 8px; text-align: center; color: #155724; font-size: 0.8em;">
+                                    3. Encoder fits on TRAIN only!
+                                </div>
+                                <div style="text-align: center; color: #28a745;">↓</div>
+                                <div style="background: #28a745; padding: 10px; border-radius: 6px; text-align: center; color: white; font-size: 0.75em; font-weight: bold;">
+                                    ✓ NO LEAKAGE!<br>Safe for production
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Pipeline Structure</h2>
+                    <pre><code class="python">from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OrdinalEncoder
+
+# Define column types
+CATEGORICAL_COLS = ['category']
+NUMERIC_COLS = ['amount', 'age_at_transaction', 'loc_delta', ...]
+
+# Create preprocessor
+preprocessor = ColumnTransformer([
+    ('cat', OrdinalEncoder(handle_unknown='use_encoded_value', 
+                           unknown_value=-1), CATEGORICAL_COLS),
+    ('num', 'passthrough', NUMERIC_COLS)
+])
+
+# Create complete pipeline
+pipeline = Pipeline([
+    ('preprocessor', preprocessor),   # Step 1: Transform features
+    ('classifier', XGBClassifier())   # Step 2: Train model
+])</code></pre>
+                </section>
+
+                <section>
+                    <h2>Training Two Models</h2>
+                    <pre><code class="python"># BEST PRACTICE: Always clone(preprocessor) for each pipeline
+from sklearn.base import clone
+
+# Train XGBoost Pipeline
+xgb_pipeline = Pipeline([
+    ('preprocessor', clone(preprocessor)),  # Fresh copy
+    ('classifier', XGBClassifier(n_estimators=100, max_depth=6, 
+                                  scale_pos_weight=scale_pos_weight))
+])
+xgb_pipeline.fit(X_train, y_train)
+
+# Train Random Forest Pipeline
+rf_pipeline = Pipeline([
+    ('preprocessor', clone(preprocessor)),  # Fresh copy
+    ('classifier', RandomForestClassifier(n_estimators=100, 
+                                           class_weight='balanced'))
+])
+rf_pipeline.fit(X_train, y_train)</code></pre>
+                    <div class="highlight-box">
+                        <strong>Why clone()?</strong> Copies constructor args, NOT fitted state. Each pipeline is independent. Order doesn't matter.
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Ensemble: Soft Voting</h2>
+                    <pre><code class="python"># Get probability predictions from each model
+xgb_prob = xgb_pipeline.predict_proba(X_test)[:, 1]  # e.g., 0.85
+rf_prob = rf_pipeline.predict_proba(X_test)[:, 1]   # e.g., 0.65
+
+# Ensemble = average of probabilities
+ensemble_prob = (xgb_prob + rf_prob) / 2             # = 0.75
+ensemble_pred = (ensemble_prob >= 0.5).astype(int)   # = 1 (FRAUD)</code></pre>
+                    <svg viewBox="0 0 650 160" style="width: 100%; max-width: 650px; margin-top: 15px;">
+                        <!-- XGBoost bar -->
+                        <text x="5" y="28" font-size="12" font-weight="bold" fill="#333">XGBoost</text>
+                        <rect x="100" y="15" width="350" height="22" rx="4" fill="#e9ecef"/>
+                        <rect x="100" y="15" width="298" height="22" rx="4" fill="#667eea"/>
+                        <text x="460" y="31" font-size="12" font-weight="bold" fill="#667eea">85%</text>
+                        
+                        <!-- Random Forest bar -->
+                        <text x="5" y="68" font-size="12" font-weight="bold" fill="#333">Random Forest</text>
+                        <rect x="100" y="55" width="350" height="22" rx="4" fill="#e9ecef"/>
+                        <rect x="100" y="55" width="228" height="22" rx="4" fill="#28a745"/>
+                        <text x="460" y="71" font-size="12" font-weight="bold" fill="#28a745">65%</text>
+                        
+                        <!-- Divider -->
+                        <line x1="100" y1="90" x2="450" y2="90" stroke="#adb5bd" stroke-width="1.5" stroke-dasharray="4,4"/>
+                        <text x="470" y="94" font-size="10" fill="#666">AVG</text>
+                        
+                        <!-- Ensemble bar -->
+                        <text x="5" y="125" font-size="12" font-weight="bold" fill="#333">Ensemble</text>
+                        <rect x="100" y="112" width="350" height="22" rx="4" fill="#e9ecef"/>
+                        <rect x="100" y="112" width="263" height="22" rx="4" fill="#ee0979"/>
+                        <text x="460" y="128" font-size="12" font-weight="bold" fill="#ee0979">75%</text>
+                        
+                        <!-- Result badge -->
+                        <rect x="520" y="107" width="70" height="30" rx="6" fill="#dc3545"/>
+                        <text x="555" y="127" text-anchor="middle" font-size="11" font-weight="bold" fill="white">FRAUD</text>
+                        
+                        <!-- 50% threshold line -->
+                        <line x1="275" y1="10" x2="275" y2="140" stroke="#666" stroke-width="1" stroke-dasharray="3,3"/>
+                        <text x="275" y="155" text-anchor="middle" font-size="9" fill="#666">50% threshold</text>
+                    </svg>
+                </section>
+
+                <section>
+                    <h2>Saving Pipelines</h2>
+                    <pre><code class="python">import joblib
+import json
+import os
+
+os.makedirs('models', exist_ok=True)
+
+# Save complete pipelines (preprocessor + model)
+joblib.dump(xgb_pipeline, 'models/xgboost_pipeline.pkl')
+joblib.dump(rf_pipeline, 'models/random_forest_pipeline.pkl')
+
+# Save metadata
+metadata = {
+    'feature_columns': FEATURE_COLS,
+    'category_classes': list(encoder.categories_[0]),
+    'metrics': {'xgboost': xgb_metrics, 'rf': rf_metrics}
+}
+with open('models/model_metadata.json', 'w') as f:
+    json.dump(metadata, f, indent=2)</code></pre>
+                    <div class="success-box">
+                        <strong>Output:</strong> <code>models/xgboost_pipeline.pkl</code>, <code>random_forest_pipeline.pkl</code>, <code>model_metadata.json</code>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Files After Training</h2>
+                    <pre style="font-size: 0.65em;"><code>models/
+├── xgboost_pipeline.pkl       # Preprocessor + XGBoost 
+├── random_forest_pipeline.pkl # Preprocessor + Random Forest
+├── model_metadata.json        # Features, categories, metrics
+└── feature_stats.json         # For drift detection</code></pre>
+                    <div class="highlight-box">
+                        <strong>Key Benefit:</strong> No separate encoder file needed!<br>
+                        Pipeline = Preprocessor + Model in ONE file.
+                    </div>
+                </section>
+
+                <section data-background-color="#e8f5e9">
+                    <h2>🎯 Demo Time: Part 1</h2>
+                    <h3>Training & Saving Pipelines</h3>
+                    <table style="font-size: 0.75em; margin-top: 20px;">
+                        <tr>
+                            <th>Tool</th>
+                            <th>Input</th>
+                            <th>Output</th>
+                        </tr>
+                        <tr>
+                            <td><strong>Google Colab</strong></td>
+                            <td>Raw transaction data (CSV)</td>
+                            <td>Trained pipelines</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Jupyter Notebook</strong></td>
+                            <td>L6.1_Fraud_Detection_Training_v2.ipynb</td>
+                            <td>models/ folder</td>
+                        </tr>
+                    </table>
+                    <div class="success-box" style="margin-top: 20px;">
+                        <strong>What to show:</strong><br>
+                        1. Run notebook cells → 2. Check models/ folder → 3. Verify .pkl files saved
+                    </div>
+                </section>
+
+                <section data-background-color="#f0f4ff">
+                    <h2>🧠 Quick Check: Part 1</h2>
+                    <p style="font-size: 0.75em; color: #666;">Click each question to reveal the answer</p>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">Why do we use sklearn Pipelines instead of fitting the encoder separately?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>To prevent data leakage!</strong> When you fit an encoder on ALL data before train/test split, the encoder "sees" test data during training. Pipelines ensure the encoder only fits on training data. This gives you honest performance estimates.
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">What's the advantage of saving a Pipeline vs saving encoder and model separately?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>One file contains everything!</strong> The pipeline bundles preprocessing and model together. At prediction time, you just call <code>pipeline.predict(raw_data)</code>. No need to remember transformation steps or load multiple files.
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- PART 2: FastAPI Service -->
+            <section>
+                <section>
+                    <h1>Part 2</h1>
+                    <h2>FastAPI Service</h2>
+                    <p>Building the prediction API</p>
+                </section>
+
+                <section>
+                    <h2>Why Not Just Load pkl in Streamlit?</h2>
+                    <p style="font-size: 0.85em; color: #666;">"Can't I just put model.pkl in GitHub and load it directly?"</p>
+                    <div class="two-column" style="margin-top: 20px;">
+                        <div>
+                            <h4 style="color: #d73a49;">❌ Direct pkl in Streamlit</h4>
+                            <ul style="font-size: 0.7em;">
+                                <li>Model reloads every user session</li>
+                                <li>Can't scale frontend independently</li>
+                                <li>No centralized logging</li>
+                                <li>Hard to serve mobile/other UIs</li>
+                                <li>No input validation before model</li>
+                                <li>Tight coupling: change model → redeploy UI</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style="color: #28a745;">✅ FastAPI + Render</h4>
+                            <ul style="font-size: 0.7em;">
+                                <li>Model loads ONCE at startup</li>
+                                <li>Scale API and UI separately</li>
+                                <li>Centralized logging at API</li>
+                                <li>Same API: web, mobile, batch</li>
+                                <li>Pydantic validates inputs</li>
+                                <li>Loose coupling: update independently</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Production Architecture Pattern</h2>
+                    <div style="text-align: center; font-size: 0.8em;">
+                        <div style="display: inline-block; padding: 15px 25px; background: #e3f2fd; border-radius: 8px; margin: 5px;">
+                            <strong>Streamlit</strong><br><small>Frontend</small>
+                        </div>
+                        <span style="font-size: 1.5em; margin: 0 10px;">→</span>
+                        <div style="display: inline-block; padding: 15px 25px; background: #fff3e0; border-radius: 8px; margin: 5px; border: 2px solid #ff9800;">
+                            <strong>FastAPI</strong><br><small>ML Service</small>
+                        </div>
+                        <span style="font-size: 1.5em; margin: 0 10px;">→</span>
+                        <div style="display: inline-block; padding: 15px 25px; background: #e8f5e9; border-radius: 8px; margin: 5px;">
+                            <strong>Model.pkl</strong><br><small>Loaded once</small>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; text-align: center; font-size: 0.7em;">
+                        <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 6px; margin: 3px;">Mobile App</span>
+                        <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 6px; margin: 3px;">Batch Job</span>
+                        <span style="background: #e3f2fd; padding: 8px 12px; border-radius: 6px; margin: 3px;">Partner API</span>
+                        <p style="color: #666; margin-top: 5px;">↑ All use the SAME FastAPI backend</p>
+                    </div>
+                    <div class="warning-box" style="font-size: 0.65em; margin-top: 10px;">
+                        <strong>Industry standard:</strong> Banks, e-commerce, healthcare all use this pattern.
+                    </div>
+                </section>
+
+                <section>
+                    <h2>What is FastAPI?</h2>
+                    <div class="two-column">
+                        <div>
+                            <ul>
+                                <li>Modern Python web framework</li>
+                                <li>Auto-generates API documentation</li>
+                                <li>Type validation with Pydantic</li>
+                                <li>High performance (async)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <pre><code class="python">from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def health():
+    return {"status": "healthy"}
+
+@app.post("/predict")
+def predict(data: Input):
+    return {"prediction": 1}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Project Structure</h2>
+                    <pre style="font-size: 0.7em;"><code>Deploy_Render/
+├── main.py              # FastAPI application
+├── requirements.txt     # Python dependencies
+├── Procfile            # Render start command
+├── .python-version     # Python version (3.11.7)
+└── models/
+    ├── xgboost_pipeline.pkl
+    ├── random_forest_pipeline.pkl
+    ├── model_metadata.json
+    └── feature_stats.json</code></pre>
+                </section>
+
+                <section>
+                    <h2>main.py - Load Models</h2>
+                    <pre><code class="python">from fastapi import FastAPI
+import joblib
+import json
+from pathlib import Path
+
+app = FastAPI(title="Fraud Detection API")
+
+# Load pipelines at startup
+MODEL_DIR = Path("models")
+xgb_pipeline = joblib.load(MODEL_DIR / "xgboost_pipeline.pkl")
+rf_pipeline = joblib.load(MODEL_DIR / "random_forest_pipeline.pkl")
+
+with open(MODEL_DIR / "model_metadata.json") as f:
+    metadata = json.load(f)
+
+print("Models loaded successfully!")</code></pre>
+                </section>
+
+                <section>
+                    <h2>Why Pydantic for ML APIs?</h2>
+                    <div class="two-column">
+                        <div>
+                            <h3>Data Science Problems</h3>
+                            <ul style="font-size: 0.8em;">
+                                <li>❌ Wrong data types crash models</li>
+                                <li>❌ Missing features = silent failures</li>
+                                <li>❌ Out-of-range values = bad predictions</li>
+                                <li>❌ No documentation for API users</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3>Pydantic Solutions</h3>
+                            <ul style="font-size: 0.8em;">
+                                <li>✅ Auto type conversion & validation</li>
+                                <li>✅ Required vs optional fields</li>
+                                <li>✅ Range constraints (ge, le)</li>
+                                <li>✅ Auto-generated /docs page</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="warning-box" style="margin-top: 15px; font-size: 0.75em;">
+                        <strong>Without Pydantic:</strong> <code>model.predict([[None, "abc", -999]])</code> → Model crashes or gives garbage<br>
+                        <strong>With Pydantic:</strong> Returns clear error: <code>"amount must be >= 0.01"</code>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>main.py - Pydantic Validation</h2>
+                    <pre><code class="python">from pydantic import BaseModel, Field, field_validator
+
+class TransactionInput(BaseModel):
+    # Field() with constraints and descriptions
+    category: str = Field(
+        ...,                              # Required (...)
+        description="Transaction category"
+    )
+    amount: float = Field(
+        ...,
+        ge=0.01, le=50000,                # Min/Max constraints
+        description="Transaction amount in dollars"
+    )
+    age_at_transaction: float = Field(..., ge=18, le=100)
+    loc_delta: float = Field(default=0.0, ge=0, le=1)
+    
+    # Custom validator
+    @field_validator('category')
+    @classmethod
+    def validate_category(cls, v):
+        if not v.strip():
+            raise ValueError('Category cannot be empty')
+        return v.strip()</code></pre>
+                    <div class="highlight-box" style="font-size: 0.7em;">
+                        Try invalid input at <code>/docs</code> → See automatic error messages!
+                    </div>
+                </section>
+
+                <section>
+                    <h2>main.py - Predict Endpoint</h2>
+                    <pre><code class="python">@app.post("/predict", response_model=PredictionResponse)
+def predict(transaction: TransactionInput):
+    # Create DataFrame with RAW features
+    X = pd.DataFrame([{
+        'category': transaction.category,  # Raw string!
+        'amount': transaction.amount,
+        'age_at_transaction': transaction.age_at_transaction,
+        # ... other features
+    }])[FEATURE_COLS]
+    
+    # Pipelines handle preprocessing automatically!
+    xgb_prob = float(xgb_pipeline.predict_proba(X)[0, 1])
+    rf_prob = float(rf_pipeline.predict_proba(X)[0, 1])
+    ensemble_prob = (xgb_prob + rf_prob) / 2
+    
+    return PredictionResponse(
+        xgboost_probability=xgb_prob,
+        random_forest_probability=rf_prob,
+        ensemble_probability=ensemble_prob,
+        verdict="FRAUD" if ensemble_prob >= 0.5 else "LEGIT"
+    )</code></pre>
+                </section>
+
+                <section>
+                    <h2>requirements.txt</h2>
+                    <pre><code class="text">fastapi>=0.109.0
+uvicorn>=0.27.0
+pydantic>=2.5.0
+joblib>=1.3.0
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0
+xgboost>=2.0.0
+scikit-learn>=1.3.0</code></pre>
+                    <div class="warning-box">
+                        <strong>Note:</strong> Use flexible versions (>=) for cloud compatibility
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Procfile & .python-version</h2>
+                    <div class="two-column">
+                        <div>
+                            <h4>Procfile</h4>
+                            <pre><code class="text">web: uvicorn main:app --host 0.0.0.0 --port $PORT</code></pre>
+                            <p style="font-size: 0.7em;">Tells Render how to start the server</p>
+                        </div>
+                        <div>
+                            <h4>.python-version</h4>
+                            <pre><code class="text">3.11.7</code></pre>
+                            <p style="font-size: 0.7em;">Specifies Python version (avoid 3.13 issues!)</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Test Locally</h2>
+                    <pre><code class="bash"># Install dependencies
+pip install -r requirements.txt
+
+# Start server
+uvicorn main:app --reload
+
+# Server runs at http://localhost:8000</code></pre>
+                    <p>Test endpoints:</p>
+                    <ul>
+                        <li><code>http://localhost:8000/</code> - Health check</li>
+                        <li><code>http://localhost:8000/docs</code> - Interactive API docs</li>
+                        <li><code>http://localhost:8000/predict</code> - POST prediction</li>
+                    </ul>
+                </section>
+
+                <section data-background-color="#e3f2fd">
+                    <h2>🎯 Demo Time: Part 2</h2>
+                    <h3>FastAPI Local Testing</h3>
+                    <table style="font-size: 0.75em; margin-top: 20px;">
+                        <tr>
+                            <th>Tool</th>
+                            <th>Input</th>
+                            <th>Output</th>
+                        </tr>
+                        <tr>
+                            <td><strong>VS Code / Terminal</strong></td>
+                            <td>Deploy_Render/ folder</td>
+                            <td>Running API server</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Browser</strong></td>
+                            <td>localhost:8000/docs</td>
+                            <td>Interactive Swagger UI</td>
+                        </tr>
+                    </table>
+                    <div class="success-box" style="margin-top: 20px;">
+                        <strong>What to show:</strong><br>
+                        1. <code>uvicorn main:app --reload</code> → 2. Open /docs → 3. Try /predict with sample data
+                    </div>
+                </section>
+
+                <section data-background-color="#e8fff0">
+                    <h2>🧠 Quick Check: Part 2</h2>
+                    <p style="font-size: 0.75em; color: #666;">Click each question to reveal the answer</p>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">Why use FastAPI and Render instead of loading .pkl directly in Streamlit?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>Separation of concerns!</strong> The API loads the model ONCE at startup, not per user session. Multiple clients like web, mobile, and batch jobs can share the same API. You can scale, update, and monitor the model layer independently from the UI.
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">What does Pydantic's <code>Field(ge=0.01, le=50000)</code> do for an ML API?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>Input validation before the model sees it!</strong> The <code>ge=0.01</code> means "greater or equal to 0.01". The <code>le=50000</code> means "less or equal to 50000". Invalid inputs get a clear error message instead of crashing the model or producing garbage predictions.
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- PART 3: Deploy to Render -->
+            <section>
+                <section>
+                    <h1>Part 3</h1>
+                    <h2>Deploy to Render.com</h2>
+                    <p>Taking your API to the cloud</p>
+                </section>
+
+                <section>
+                    <h2>Step 1: Push to GitHub</h2>
+                    <pre><code class="bash"># Initialize git in Deploy_Render folder
+cd Deploy_Render
+git init
+git add .
+git commit -m "Fraud Detection API"
+
+# Create repo on GitHub, then push
+git remote add origin https://github.com/YOUR_USER/model-deployment.git
+git branch -M main
+git push -u origin main</code></pre>
+                    <div class="highlight-box">
+                        <strong>Repository must be PUBLIC</strong> for free Render tier
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Step 2: Create Render Account</h2>
+                    <div style="text-align: left;">
+                        <p><span class="step-number">1</span> Go to <a href="https://render.com">render.com</a></p>
+                        <p><span class="step-number">2</span> Click <strong>"Sign Up"</strong></p>
+                        <p><span class="step-number">3</span> Select <strong>"Sign up with GitHub"</strong> (easiest!)</p>
+                        <p><span class="step-number">4</span> Authorize Render to access your GitHub</p>
+                    </div>
+                    <div class="success-box" style="margin-top: 20px;">
+                        Using GitHub login automatically connects your repositories!
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Quick Reference: Full Setup Flow</h2>
+                    <div class="two-column" style="font-size: 0.75em;">
+                        <div style="text-align: left;">
+                            <h4 style="margin-bottom: 10px;">📍 Navigation</h4>
+                            <p><span class="step-number">1</span> Go to <strong>My Project</strong></p>
+                            <p><span class="step-number">2</span> Click <strong>+ New Service</strong></p>
+                            <p><span class="step-number">3</span> Select <strong>Web Service</strong></p>
+                            
+                            <h4 style="margin-top: 15px; margin-bottom: 10px;">🔗 Connect Repository</h4>
+                            <p><span class="step-number">4</span> Select tab: <strong>Public GitHub Repository</strong></p>
+                            <p><span class="step-number">5</span> Enter URL:<br>
+                            <code style="font-size: 0.85em;">https://github.com/prakashsukhwal/model-deployment2026</code></p>
+                            <p><span class="step-number">6</span> Click <strong>Connect</strong></p>
+                        </div>
+                        <div style="text-align: left;">
+                            <h4 style="margin-bottom: 10px;">⚙️ Configure Settings</h4>
+                            <table style="font-size: 0.85em;">
+                                <tr><td><strong>Name</strong></td><td><code>model-deployment2026-1</code></td></tr>
+                                <tr><td><strong>Language</strong></td><td><code>Python 3</code></td></tr>
+                                <tr><td><strong>Branch</strong></td><td><code>main</code></td></tr>
+                                <tr><td><strong>Region</strong></td><td><code>Oregon (US West)</code></td></tr>
+                                <tr><td><strong>Build Cmd</strong></td><td><code>pip install -r requirements.txt</code></td></tr>
+                                <tr><td><strong>Start Cmd</strong></td><td><code>uvicorn main:app --host 0.0.0.0 --port $PORT</code></td></tr>
+                                <tr><td><strong>Instance</strong></td><td><strong style="color: #28a745;">Free ($0/month)</strong></td></tr>
+                            </table>
+                            <p style="margin-top: 15px;"><span class="step-number">7</span> Click <strong>Deploy Web Service</strong></p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Configuration Screenshot</h2>
+                    <p style="font-size: 0.8em; color: #666;">Render.com New Web Service settings</p>
+                    <img src="images/render_new_service_config.jpg" alt="Render New Service Configuration" style="max-width: 550px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                    <div class="warning-box" style="font-size: 0.7em; margin-top: 15px;">
+                        <strong>Important:</strong> Select <strong>Free</strong> instance type (512 MB RAM, 0.1 CPU) → <strong>$0/month</strong>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Step 3: Create Web Service (1/5)</h2>
+                    <p>Click <strong>New → Web Service</strong></p>
+                    <img src="images/render_dashboard-build1.jpg" alt="Render Step 1" style="max-width: 600px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                </section>
+
+                <section>
+                    <h2>Step 3: Connect Repository (2/5)</h2>
+                    <p>Select your GitHub repository and click <strong>Connect</strong></p>
+                    <img src="images/render_dashboard-build2.jpg" alt="Render Step 2" style="max-width: 600px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                </section>
+
+                <section>
+                    <h2>Step 4: Configure Settings (3/5)</h2>
+                    <p>Set name, region, and select <strong>Free</strong> instance</p>
+                    <img src="images/render_dashboard-build3.jpg" alt="Render Step 3" style="max-width: 600px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                </section>
+
+                <section>
+                    <h2>Step 4: Build & Start Commands (4/5)</h2>
+                    <div class="highlight-box" style="font-size: 0.8em; margin-bottom: 10px;">
+                        <strong>Build:</strong> <code>pip install -r requirements.txt</code><br>
+                        <strong>Start:</strong> <code>uvicorn main:app --host 0.0.0.0 --port $PORT</code>
+                    </div>
+                    <img src="images/render_dashboard-build4.jpg" alt="Render Step 4" style="max-width: 600px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                </section>
+
+                <section>
+                    <h2>Step 5: Deploy Success! (5/5)</h2>
+                    <p>Wait for build to complete → <strong>Your API is live!</strong></p>
+                    <img src="images/render_dashboard-build5.jpg" alt="Render Step 5" style="max-width: 600px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                </section>
+
+                <section>
+                    <h2>FastAPI Auto-Generated Docs</h2>
+                    <p>Visit: <a href="https://model-deployment2026.onrender.com/docs" target="_blank"><code>https://model-deployment2026.onrender.com/docs</code></a></p>
+                    <img src="images/fastapi_docs.jpg" alt="FastAPI Docs" style="max-width: 650px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+                    <div class="highlight-box" style="font-size: 0.7em; margin-top: 10px;">
+                        <strong>Auto-generated from Pydantic models!</strong> Try endpoints directly in browser.
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Your API is Live!</h2>
+                    <div class="success-box">
+                        <h3>🎉 Deployed URL:</h3>
+                        <p><a href="https://model-deployment2026.onrender.com" target="_blank"><code>https://model-deployment2026.onrender.com</code></a></p>
+                    </div>
+                    <table style="margin-top: 20px;">
+                        <tr><th>Endpoint</th><th>Full URL</th></tr>
+                        <tr><td>Health Check</td><td><code>https://model-deployment2026.onrender.com/</code></td></tr>
+                        <tr><td>API Docs</td><td><code>https://model-deployment2026.onrender.com/docs</code></td></tr>
+                        <tr><td>Predict</td><td><code>https://model-deployment2026.onrender.com/predict</code> (POST)</td></tr>
+                        <tr><td>Model Info</td><td><code>https://model-deployment2026.onrender.com/model-info</code></td></tr>
+                    </table>
+                </section>
+
+                <section>
+                    <h2>Test Deployed API</h2>
+                    <div class="two-column">
+                        <div>
+                            <h4 style="color: #28a745;">✅ Easiest: Use /docs Page</h4>
+                            <div class="success-box" style="font-size: 0.8em;">
+                                <p><span class="step-number">1</span> Open browser</p>
+                                <p><span class="step-number">2</span> Go to: <a href="https://model-deployment2026.onrender.com/docs" target="_blank">/docs</a></p>
+                                <p><span class="step-number">3</span> Click <strong>POST /predict</strong></p>
+                                <p><span class="step-number">4</span> Click <strong>"Try it out"</strong></p>
+                                <p><span class="step-number">5</span> Edit values & click <strong>"Execute"</strong></p>
+                            </div>
+                            <p style="font-size: 0.7em; color: #666; margin-top: 10px;">No coding needed! Best for beginners.</p>
+                        </div>
+                        <div>
+                            <h4>💻 Alternative: PowerShell/Terminal</h4>
+                            <p style="font-size: 0.75em; color: #666;">Open PowerShell (Windows) or Terminal (Mac)</p>
+                            <pre style="font-size: 0.55em;"><code class="bash"># Health check (just paste & Enter)
+curl https://model-deployment2026.onrender.com/
+
+# Or in browser, simply visit the URL above</code></pre>
+                            <p style="font-size: 0.7em; color: #666; margin-top: 10px;">For POST requests, use the /docs page instead - much easier!</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Example Response</h2>
+                    <pre><code class="json">{
+    "transaction_id": "txn_20260204_052259_000001",
+    "timestamp": "2026-02-04T05:22:59.271786",
+    "xgboost_probability": 0.9739,
+    "random_forest_probability": 0.4688,
+    "ensemble_probability": 0.7213,
+    "ensemble_prediction": 1,
+    "verdict": "HIGH RISK - Likely Fraud",
+    "drift_warnings": ["trans_freq: 5.00 is >3 std from mean (1.14)"]
+}</code></pre>
+                    <div class="success-box">
+                        <strong>✓ Both models working</strong><br>
+                        <strong>✓ Ensemble averaging</strong><br>
+                        <strong>✓ Drift detection</strong>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Bulk Scoring: Bypassing the UI</h2>
+                    <p style="font-size: 0.85em; color: #666;">"I have 20 transactions to check - do I click 20 times?"</p>
+                    <div class="two-column" style="margin-top: 15px;">
+                        <div>
+                            <h4>Use Case</h4>
+                            <ul style="font-size: 0.75em;">
+                                <li>Banking official has batch of records</li>
+                                <li>Daily overnight transaction screening</li>
+                                <li>Audit compliance checks</li>
+                                <li>Integration with existing systems</li>
+                            </ul>
+                            <div class="success-box" style="font-size: 0.7em; margin-top: 15px;">
+                                <strong>Solution:</strong> Call API directly from Python/Colab!
+                            </div>
+                        </div>
+                        <div>
+                            <h4>Simple Python Loop</h4>
+                            <pre style="font-size: 0.6em;"><code class="python">import requests
+
+API = "https://model-deployment2026.onrender.com"
+
+# Your batch of transactions
+for txn in transactions:
+    result = requests.post(
+        f"{API}/predict", 
+        json=txn
+    ).json()
+    
+    print(f"${txn['amount']:.2f} → "
+          f"{result['verdict']}")</code></pre>
+                        </div>
+                    </div>
+                    <div class="highlight-box" style="font-size: 0.7em; margin-top: 10px;">
+                        <strong>See:</strong> <code>L6.2_Bulk_Scoring_Demo.ipynb</code> - Ready-to-run Colab notebook!
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Bulk Scoring Output</h2>
+                    <pre style="font-size: 0.65em;"><code class="text">Scoring 20 transactions...
+======================================================================
+  [ 1/20] $  45.50 Grocery      →   2.0% (LEGITIMATE - Approved)
+  [ 2/20] $  55.00 Gas          →   1.9% (LEGITIMATE - Approved)
+  [ 3/20] $  28.75 Food         →   0.8% (LEGITIMATE - Approved)
+  ...
+  [11/20] $2500.00 Shopping     →   4.8% (LEGITIMATE - Approved)
+  [12/20] $1800.00 Entertainment →   2.8% (LEGITIMATE - Approved)
+  ...
+======================================================================
+Completed 20 transactions in 45.3 seconds
+
+SUMMARY: 0 FRAUD, 20 LEGIT</code></pre>
+                    <div class="two-column" style="margin-top: 10px;">
+                        <div class="success-box" style="font-size: 0.7em;">
+                            <strong>Benefits:</strong>
+                            <ul style="margin: 5px 0;">
+                                <li>No manual input - automated</li>
+                                <li>Results in DataFrame → export to CSV</li>
+                                <li>Same API as Streamlit app</li>
+                            </ul>
+                        </div>
+                        <div class="highlight-box" style="font-size: 0.7em;">
+                            <strong>Production Extension:</strong>
+                            <ul style="margin: 5px 0;">
+                                <li>Schedule as daily cron job</li>
+                                <li>Connect to database</li>
+                                <li>Auto-alert on high-risk batches</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Production Monitoring</h2>
+                    <h3>Why Monitor ML Models?</h3>
+                    <div class="two-column">
+                        <div>
+                            <h4 style="color: #d73a49;">Problems in Production</h4>
+                            <ul style="font-size: 0.75em;">
+                                <li><strong>Data Drift:</strong> Input distribution changes</li>
+                                <li><strong>Model Decay:</strong> Accuracy degrades over time</li>
+                                <li><strong>Silent Failures:</strong> Model runs but gives bad predictions</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 style="color: #28a745;">Our Solution</h4>
+                            <ul style="font-size: 0.75em;">
+                                <li><strong>Drift Detection:</strong> Compare inputs to training stats</li>
+                                <li><strong>Logging:</strong> Track every prediction</li>
+                                <li><strong>Alerts:</strong> Flag anomalous inputs</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Drift Detection Code</h2>
+                    <pre><code class="python"># feature_stats.json stores training distribution
+{"amount": {"mean": 75.2, "std": 120.5}, ...}
+
+def check_drift(features: dict) -> list:
+    """Flag features > 3 std from training mean."""
+    warnings = []
+    for feature, value in features.items():
+        if feature in feature_stats:
+            mean = feature_stats[feature]["mean"]
+            std = feature_stats[feature]["std"]
+            if abs(value - mean) > 3 * std:
+                warnings.append(
+                    f"{feature}: {value:.2f} is >3 std from mean ({mean:.2f})"
+                )
+    return warnings</code></pre>
+                    <div class="highlight-box" style="font-size: 0.7em;">
+                        Response includes <code>"drift_warnings": [...]</code> for every prediction
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Why Log Predictions?</h2>
+                    <div class="two-column">
+                        <div>
+                            <h4>Retrospective Analysis</h4>
+                            <ul style="font-size: 0.75em;">
+                                <li>Debug when things go wrong</li>
+                                <li>Audit trail for compliance</li>
+                                <li>Ground truth labeling later</li>
+                            </ul>
+                            <h4 style="margin-top: 15px;">Performance Tracking</h4>
+                            <ul style="font-size: 0.75em;">
+                                <li>Monitor prediction distribution</li>
+                                <li>Detect model degradation</li>
+                                <li>A/B test new models</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4>What to Log</h4>
+                            <table style="font-size: 0.65em;">
+                                <tr><td><strong>timestamp</strong></td><td>When</td></tr>
+                                <tr><td><strong>transaction_id</strong></td><td>Unique ID</td></tr>
+                                <tr><td><strong>input</strong></td><td>All features</td></tr>
+                                <tr><td><strong>predictions</strong></td><td>All model outputs</td></tr>
+                                <tr><td><strong>has_drift</strong></td><td>Anomaly flag</td></tr>
+                                <tr><td><strong>latency_ms</strong></td><td>Response time</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Inference Logging Code</h2>
+                    <pre><code class="python"># Log every prediction to JSONL file (one JSON per line)
+log_entry = {
+    "timestamp": datetime.utcnow().isoformat(),
+    "transaction_id": request_id,
+    "input": transaction.model_dump(),  # All input features
+    "predictions": {
+        "xgboost": {"prob": 0.85},
+        "random_forest": {"prob": 0.62},
+        "ensemble": {"prob": 0.72, "pred": 1}
+    },
+    "verdict": "HIGH RISK",
+    "has_drift": len(drift_warnings) > 0,
+    "drift_warnings": drift_warnings
+}
+prediction_logger.info(json.dumps(log_entry))</code></pre>
+                    <div class="highlight-box" style="font-size: 0.7em;">
+                        <strong>JSONL format:</strong> One JSON object per line → Easy to parse with pandas!
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Monitoring Dashboard Endpoint</h2>
+                    <pre><code class="python">@app.get("/logs/summary")
+def get_log_summary():
+    """Aggregate logs for monitoring dashboard."""
+    # Read predictions.jsonl
+    for line in open("logs/predictions.jsonl"):
+        entry = json.loads(line)
+        total += 1
+        if entry["predictions"]["ensemble"]["pred"] == 1:
+            fraud_count += 1
+        if entry["has_drift"]:
+            drift_count += 1
+    
+    return {
+        "total_predictions": total,
+        "fraud_rate": fraud_count / total * 100,
+        "drift_rate": drift_count / total * 100
+    }</code></pre>
+                    <div class="success-box" style="font-size: 0.7em;">
+                        Streamlit calls this endpoint to show live monitoring stats!
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Free Tier Limitations</h2>
+                    <div class="two-column">
+                        <div>
+                            <div class="warning-box" style="margin-bottom: 15px;">
+                                <h4>⏰ Cold Starts</h4>
+                                <p style="font-size: 0.85em;">Services "sleep" after 15 min of inactivity.<br>
+                                First request takes ~30-60 seconds.</p>
+                            </div>
+                            <div class="highlight-box">
+                                <h4>Solutions:</h4>
+                                <ul style="margin: 0; font-size: 0.85em;">
+                                    <li>Use a "ping" service to keep awake</li>
+                                    <li>Upgrade to paid tier ($7/month)</li>
+                                    <li>Accept for demo/learning ✓</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="warning-box" style="background: #f8d7da; border-left-color: #dc3545;">
+                                <h4>💾 Ephemeral Storage</h4>
+                                <p style="font-size: 0.85em;">When service sleeps, <strong>all local files are deleted!</strong><br>
+                                Your <code>logs/predictions.jsonl</code> resets to empty.</p>
+                            </div>
+                            <div class="highlight-box" style="margin-top: 15px;">
+                                <h4>What This Means:</h4>
+                                <ul style="margin: 0; font-size: 0.85em;">
+                                    <li>Prediction stats reset after sleep</li>
+                                    <li>No persistent logging on free tier</li>
+                                    <li>Production needs paid tier or external DB</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Summary: Complete Pipeline</h2>
+                    <div style="display: flex; flex-direction: column; gap: 15px; max-width: 800px; margin: 0 auto;">
+                        <!-- Step 1 -->
+                        <div style="background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; padding: 15px 20px; color: white; display: flex; align-items: center; gap: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.15);">
+                            <div style="width: 45px; height: 45px; background: rgba(255,255,255,0.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3em; font-weight: bold; flex-shrink: 0;">1</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 1.1em;">TRAIN</div>
+                                <div style="font-size: 0.7em; opacity: 0.8;">Jupyter / Colab</div>
+                            </div>
+                            <div style="font-size: 0.65em; text-align: left;">
+                                • Load data, engineer features<br>
+                                • Create Pipeline<br>
+                                • Train models
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 6px; text-align: center; font-size: 0.7em;">
+                                OUTPUT:<br><strong>*.pkl files</strong>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; color: #764ba2; font-size: 1.5em;">↓</div>
+                        
+                        <!-- Step 2 -->
+                        <div style="background: linear-gradient(135deg, #11998e, #38ef7d); border-radius: 12px; padding: 15px 20px; color: white; display: flex; align-items: center; gap: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.15);">
+                            <div style="width: 45px; height: 45px; background: rgba(255,255,255,0.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3em; font-weight: bold; flex-shrink: 0;">2</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 1.1em;">CREATE API</div>
+                                <div style="font-size: 0.7em; opacity: 0.8;">FastAPI</div>
+                            </div>
+                            <div style="font-size: 0.65em; text-align: left;">
+                                • main.py: endpoints<br>
+                                • requirements.txt<br>
+                                • Procfile
+                            </div>
+                            <div style="background: rgba(255,255,255,0.2); padding: 8px 15px; border-radius: 6px; text-align: center; font-size: 0.7em;">
+                                OUTPUT:<br><strong>GitHub Repo</strong>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; color: #11998e; font-size: 1.5em;">↓</div>
+                        
+                        <!-- Step 3 -->
+                        <div style="background: linear-gradient(135deg, #ee0979, #ff6a00); border-radius: 12px; padding: 15px 20px; color: white; display: flex; align-items: center; gap: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.15);">
+                            <div style="width: 45px; height: 45px; background: rgba(255,255,255,0.25); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.3em; font-weight: bold; flex-shrink: 0;">3</div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 1.1em;">DEPLOY</div>
+                                <div style="font-size: 0.7em; opacity: 0.8;">Render.com</div>
+                            </div>
+                            <div style="font-size: 0.65em; text-align: left;">
+                                • Push to GitHub<br>
+                                • Connect to Render<br>
+                                • Configure & Deploy
+                            </div>
+                            <div style="background: rgba(255,255,255,0.95); padding: 8px 15px; border-radius: 6px; text-align: center; font-size: 0.65em; color: #333;">
+                                <span style="color: #ee0979;">LIVE URL:</span><br><strong>your-api.onrender.com</strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section data-background-color="#fff3e0">
+                    <h2>🎯 Demo Time: Part 3</h2>
+                    <h3>Deploy to Render.com</h3>
+                    <table style="font-size: 0.75em; margin-top: 20px;">
+                        <tr>
+                            <th>Tool</th>
+                            <th>Input</th>
+                            <th>Output</th>
+                        </tr>
+                        <tr>
+                            <td><strong>GitHub</strong></td>
+                            <td>Deploy_Render/ folder</td>
+                            <td>Public repository</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Render.com</strong></td>
+                            <td>GitHub repo URL</td>
+                            <td>Live API URL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Browser</strong></td>
+                            <td>your-api.onrender.com/docs</td>
+                            <td>Cloud-hosted Swagger UI</td>
+                        </tr>
+                    </table>
+                    <div class="success-box" style="margin-top: 20px;">
+                        <strong>What to show:</strong><br>
+                        1. Push to GitHub → 2. Create Render Web Service → 3. Test live /predict endpoint
+                    </div>
+                </section>
+
+                <section data-background-color="#fff8e8">
+                    <h2>🧠 Quick Check: Part 3 (1/2)</h2>
+                    <p style="font-size: 0.75em; color: #666;">Click each question to reveal the answer</p>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">Why does the Render free tier API sometimes take 30 to 60 seconds to respond?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>Cold starts!</strong> Free tier services "sleep" after 15 minutes of inactivity. The first request has to wake up the server, load Python, install dependencies, and load models into memory. Subsequent requests are fast, under 1 second.
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">If you want to analyze misclassifications later, what should you do now?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>Log every prediction!</strong> Save inputs, outputs, and timestamps to a log file in JSONL format. Later, when you get ground truth labels, you can join them with your predictions. This lets you calculate actual accuracy and find where the model fails.
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">What is the purpose of the <code>Procfile</code> in your deployment folder?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>It tells Render how to start your app!</strong> The Procfile contains the command to run your server. For FastAPI, it says <code>web: uvicorn main:app --host 0.0.0.0 --port $PORT</code>. Without it, Render wouldn't know how to launch your application.
+                        </div>
+                    </div>
+                </section>
+                
+                <section data-background-color="#fff8e8">
+                    <h2>🧠 Quick Check: Part 3 (2/2)</h2>
+                    <p style="font-size: 0.75em; color: #666;">Click each question to reveal the answer</p>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">Why do we add a <code>.python-version</code> file with "3.11.7" in it?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>To avoid compatibility issues!</strong> Without this file, Render might use Python 3.13 which has issues with pandas and other libraries. By specifying 3.11.7, we ensure a stable, tested Python version is used for our deployment.
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">A banking official has 50 transactions to check. Should they click 50 times in Streamlit?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>No! Use bulk scoring.</strong> Write a Python script that loops through all transactions and calls the API directly using the <code>requests</code> library. This is faster, automated, and the results can be saved to a CSV file for review.
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- PART 4: Streamlit Cloud -->
+            <section>
+                <section>
+                    <h1>Part 4</h1>
+                    <h2>Deploy Streamlit Frontend</h2>
+                    <p>Creating a user-friendly interface</p>
+                </section>
+
+                <section>
+                    <h2>Why Streamlit?</h2>
+                    <div class="two-column">
+                        <div>
+                            <h3>Benefits</h3>
+                            <ul>
+                                <li>Python-only (no HTML/JS)</li>
+                                <li>Rapid prototyping</li>
+                                <li>Built-in widgets</li>
+                                <li>Free cloud hosting</li>
+                                <li>Auto-deploy from GitHub</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h3>Our App Features</h3>
+                            <ul>
+                                <li><strong>Tab 1:</strong> Interactive prediction</li>
+                                <li><strong>Tab 2:</strong> Model stats & monitoring</li>
+                                <li>Connects to Render API</li>
+                                <li>Handles API sleeping gracefully</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Streamlit App Structure</h2>
+                    <pre><code class="python"># app.py
+import streamlit as st
+import requests
+
+st.set_page_config(page_title="Fraud Detection", layout="wide")
+
+# API URL - defaults to deployed Render service
+API_URL = os.environ.get("API_URL", "https://model-deployment2026.onrender.com")
+
+# Two tabs
+tab1, tab2 = st.tabs(["Prediction", "Model Stats"])
+
+with tab1:
+    # Input widgets
+    category = st.selectbox("Category", categories)
+    amount = st.number_input("Amount", value=150.0)
+    
+    if st.button("Check for Fraud"):
+        response = requests.post(f"{API_URL}/predict", json=payload)
+        st.metric("Fraud Probability", f"{result['ensemble_probability']*100:.1f}%")</code></pre>
+                </section>
+
+                <section>
+                    <h2>Step 1: Prepare Repository</h2>
+                    <div style="text-align: left;">
+                        <p>Create <code>Deploy_Streamlit/</code> folder with:</p>
+                    </div>
+                    <pre><code class="bash">Deploy_Streamlit/
+├── app.py              # Main Streamlit app
+├── requirements.txt    # Dependencies
+└── README.md           # Instructions</code></pre>
+                    <div class="highlight-box" style="margin-top: 15px;">
+                        <strong>requirements.txt:</strong>
+                        <pre style="margin: 5px 0;"><code>streamlit>=1.31.0
+requests>=2.31.0
+pandas>=2.0.0</code></pre>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Step 2: Push to GitHub</h2>
+                    <pre><code class="bash"># Create new repository on GitHub: fraud-detection-app
+cd Deploy_Streamlit
+
+git init
+git add .
+git commit -m "Streamlit fraud detection app"
+git branch -M main
+git remote add origin https://github.com/YOUR_USERNAME/fraud-detection-app.git
+git push -u origin main</code></pre>
+                </section>
+
+                <section>
+                    <h2>Step 3: Deploy on Streamlit Cloud</h2>
+                    <div style="text-align: left;">
+                        <p><span class="step-number">1</span> Go to <a href="https://share.streamlit.io">share.streamlit.io</a></p>
+                        <p><span class="step-number">2</span> Click <strong>"Sign in with GitHub"</strong></p>
+                        <p><span class="step-number">3</span> Click <strong>"New app"</strong></p>
+                        <p><span class="step-number">4</span> Select your <code>fraud-detection-app</code> repository</p>
+                        <p><span class="step-number">5</span> Set <strong>Main file path:</strong> <code>app.py</code></p>
+                        <p><span class="step-number">6</span> Click <strong>"Deploy!"</strong></p>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Step 4: Configure (Optional)</h2>
+                    <div style="text-align: left;">
+                        <p>To use a different API URL:</p>
+                    </div>
+                    <div class="highlight-box">
+                        <p><strong>In Advanced Settings → Secrets:</strong></p>
+                        <pre><code>API_URL = "https://your-api-url.onrender.com"</code></pre>
+                    </div>
+                    <div class="warning-box" style="margin-top: 15px;">
+                        <strong>Note:</strong> Default uses our deployed API at<br>
+                        <code>https://model-deployment2026.onrender.com</code>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Your App is Live!</h2>
+                    <div class="success-box">
+                        <h3>🎉 Deployed URL:</h3>
+                        <p><code>https://your-app-name.streamlit.app</code></p>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; justify-content: center; gap: 40px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 2em;">🎯</div>
+                            <p><strong>Tab 1</strong><br>Interactive Prediction</p>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 2em;">📊</div>
+                            <p><strong>Tab 2</strong><br>Model Stats</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Free Tier Notes</h2>
+                    <div class="warning-box">
+                        <h3>⏰ Cold Start Warning</h3>
+                        <ul>
+                            <li><strong>Render API:</strong> Sleeps after 15 min of inactivity</li>
+                            <li><strong>First request:</strong> Takes 30-60 seconds to wake up</li>
+                            <li><strong>Subsequent requests:</strong> Fast (< 1 second)</li>
+                        </ul>
+                    </div>
+                    <div class="highlight-box" style="margin-top: 15px;">
+                        <strong>Pro tip:</strong> The app handles this with timeout warnings and retry messages.
+                    </div>
+                </section>
+
+                <section data-background-color="#fce4ec">
+                    <h2>🎯 Demo Time: Part 4</h2>
+                    <h3>Streamlit Frontend (Activity)</h3>
+                    <table style="font-size: 0.75em; margin-top: 20px;">
+                        <tr>
+                            <th>Tool</th>
+                            <th>Input</th>
+                            <th>Output</th>
+                        </tr>
+                        <tr>
+                            <td><strong>GitHub</strong></td>
+                            <td>Deploy_Streamlit/ folder</td>
+                            <td>Public repository</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Streamlit Cloud</strong></td>
+                            <td>GitHub repo + app.py</td>
+                            <td>Live dashboard URL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Browser</strong></td>
+                            <td>your-app.streamlit.app</td>
+                            <td>Interactive fraud checker</td>
+                        </tr>
+                    </table>
+                    <div class="success-box" style="margin-top: 20px;">
+                        <strong>Student Activity:</strong><br>
+                        1. Push to GitHub → 2. Connect to share.streamlit.io → 3. Deploy your own frontend!
+                    </div>
+                </section>
+
+                <section data-background-color="#fff0f5">
+                    <h2>🧠 Quick Check: Part 4</h2>
+                    <p style="font-size: 0.75em; color: #666;">Click each question to reveal the answer</p>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">The Streamlit app doesn't contain any .pkl model files. How does it make predictions?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>It calls the FastAPI!</strong> Streamlit is just the UI. When you click "Check for Fraud", it sends an HTTP POST request to the Render.com API with the transaction data. The API does the prediction and returns JSON. This is called the "loose coupling" pattern.
+                        </div>
+                    </div>
+                    
+                    <div class="quiz-question" onclick="this.classList.toggle('revealed')">
+                        <div class="q-text">What does "drift detection" warn you about?</div>
+                        <div class="click-hint">👆 Click to reveal answer</div>
+                        <div class="answer">
+                            <strong>Unusual input values!</strong> The API compares incoming features to statistics from training data. If a value is more than 3 standard deviations from the training mean, it flags a warning. This helps catch data quality issues. It also detects real world distribution changes that might hurt model accuracy.
+                        </div>
+                    </div>
+                </section>
+            </section>
+
+            <!-- Troubleshooting -->
+            <section>
+                <section>
+                    <h2>Troubleshooting</h2>
+                </section>
+
+                <section>
+                    <h2>Common Errors</h2>
+                    <table style="font-size: 0.65em;">
+                        <tr><th>Error</th><th>Cause</th><th>Fix</th></tr>
+                        <tr>
+                            <td>Python 3.13 pandas error</td>
+                            <td>Pandas incompatible with Python 3.13</td>
+                            <td>Add <code>.python-version</code> file with <code>3.11.7</code></td>
+                        </tr>
+                        <tr>
+                            <td>Model not found</td>
+                            <td>Missing .pkl files</td>
+                            <td>Ensure models/ folder is committed</td>
+                        </tr>
+                        <tr>
+                            <td>502 Bad Gateway</td>
+                            <td>Server crashed</td>
+                            <td>Check Render logs for errors</td>
+                        </tr>
+                        <tr>
+                            <td>Request timeout</td>
+                            <td>Cold start</td>
+                            <td>Wait 30-60 seconds, try again</td>
+                        </tr>
+                        <tr>
+                            <td>Category not found</td>
+                            <td>Unknown category value</td>
+                            <td>Pipeline handles with <code>unknown_value=-1</code></td>
+                        </tr>
+                    </table>
+                </section>
+
+                <section>
+                    <h2>Debugging Tips</h2>
+                    <pre><code class="bash"># Check Render logs
+# Dashboard → Your Service → Logs tab
+
+# Common log messages:
+"Models loaded successfully!"          # ✓ Good
+"Error loading models: ..."            # ✗ Check model files
+"INFO: Uvicorn running on ..."         # ✓ Server started</code></pre>
+                    <div class="highlight-box">
+                        <strong>Pro tip:</strong> Add print statements in <code>main.py</code> to debug issues
+                    </div>
+                </section>
+            </section>
+
+            <!-- SUMMARY -->
+            <section>
+                <section>
+                    <h1>Summary</h1>
+                    <h2>End-to-End Pipeline</h2>
+                </section>
+
+                <section>
+                    <h2>What We Built</h2>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 20px;">
+                        <div style="background: #667eea; color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 1.5em;">📓</div>
+                            <strong>Part 1</strong><br>
+                            Training Notebook<br>
+                            <small>Pipelines + Models</small>
+                        </div>
+                        <div style="font-size: 2em; color: #667eea;">→</div>
+                        <div style="background: #11998e; color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 1.5em;">⚡</div>
+                            <strong>Part 2</strong><br>
+                            FastAPI Service<br>
+                            <small>REST API</small>
+                        </div>
+                        <div style="font-size: 2em; color: #11998e;">→</div>
+                        <div style="background: #ee0979; color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 1.5em;">☁️</div>
+                            <strong>Part 3</strong><br>
+                            Render.com<br>
+                            <small>Cloud API</small>
+                        </div>
+                        <div style="font-size: 2em; color: #ee0979;">→</div>
+                        <div style="background: #ff6b35; color: white; padding: 20px; border-radius: 10px; text-align: center;">
+                            <div style="font-size: 1.5em;">🎨</div>
+                            <strong>Part 4</strong><br>
+                            Streamlit<br>
+                            <small>Frontend UI</small>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Key Takeaways</h2>
+                    <div style="text-align: left;">
+                        <p>✅ <strong>sklearn Pipelines</strong> = preprocessing + model in one object</p>
+                        <p>✅ <strong>No data leakage</strong> - encoder fit only on training data</p>
+                        <p>✅ <strong>Simple deployment</strong> - one .pkl file has everything</p>
+                        <p>✅ <strong>FastAPI</strong> = auto-documentation, validation, async</p>
+                        <p>✅ <strong>Render.com</strong> = free API hosting from GitHub</p>
+                        <p>✅ <strong>Streamlit Cloud</strong> = free frontend hosting</p>
+                        <p>✅ <strong>Version pinning</strong> (.python-version) avoids issues</p>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Live Demo Links</h2>
+                    <div class="success-box">
+                        <h3>Try it yourself!</h3>
+                        <p><strong>API Docs:</strong> <a href="https://model-deployment2026.onrender.com/docs">model-deployment2026.onrender.com/docs</a></p>
+                        <p><strong>Streamlit App:</strong> <em>(Deploy your own!)</em></p>
+                    </div>
+                </section>
+
+                <section data-background-color="#fff8e1">
+                    <h2>📝 Check Your Understanding</h2>
+                    <div style="margin-top: 30px;">
+                        <div style="font-size: 4em; margin-bottom: 20px;">🎯</div>
+                        <h3>Take the Quiz on Canvas</h3>
+                        <p style="font-size: 1.1em; color: #666; margin-top: 20px;">
+                            Test your knowledge of ML deployment concepts
+                        </p>
+                        <div class="highlight-box" style="margin-top: 30px; text-align: left;">
+                            <strong>Topics covered:</strong>
+                            <ul style="margin-top: 10px;">
+                                <li>sklearn Pipelines & data leakage prevention</li>
+                                <li>Pydantic validation for ML APIs</li>
+                                <li>FastAPI vs direct pkl loading</li>
+                                <li>Drift detection & logging</li>
+                                <li>Cloud deployment (Render, Streamlit Cloud)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h2>Questions?</h2>
+                    <p style="font-size: 1.2em; margin-top: 40px; color: #666;">
+                        Thank you!
+                    </p>
+                </section>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: 'c/t',
+            plugins: [ RevealHighlight ],
+            transition: 'slide'
+        });
+    </script>
+</body>
+</html>
